@@ -7,7 +7,7 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 11434;
 const OPENAI_API_URL = "https://api.openai.com/v1/chat/completions";
 
 app.post("/api/chat", async (req, res) => {
