@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ChatGPT Clone</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        #chat-container {
+            border: 1px solid #ccc;
+            padding: 20px;
+            height: 400px;
+            overflow-y: auto;
+        }
+        #user-input {
+            width: 70%;
+            padding: 10px;
+            margin-right: 10px;
+        }
+        button {
+            padding: 10px 20px;
+        }
+    </style>
+</head>
+<body>
+    <h1>ChatGPT Clone</h1>
+    <div id="chat-container"></div>
+    <div>
+        <input type="text" id="user-input" placeholder="Type your message here...">
+        <button onclick="sendMessage()">Send</button>
+    </div>
+
+    <script>
+        const chatContainer = document.getElementById('chat-container');
+        const userInput = document.getElementById('user-input');
+        
+        // Replace this with your actual ChatGPT JWT token
+        const token = 'Bearer eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6Ik1UaEVOVUpHTkVNMVFURTRNMEZCTWpkQ05UZzVNRFUxUlRVd1FVSkRNRU13UmtGRVFrRXpSZyJ9.eyJwd2RfYXV0aF90aW1lIjoxNzIwNzgyMDE0Mjc1LCJzZXNzaW9uX2lkIjoiTm5DLUNwTVhta0F1U3hpb3pmX3BodHJpTUZiRDdvZlUiLCJodHRwczovL2FwaS5vcGVuYWkuY29tL3Byb2ZpbGUiOnsiZW1haWwiOiJmdXR1cmVsYWIuYWlAZ21haWwuY29tIiwiZW1haWxfdmVyaWZpZWQiOnRydWV9LCJodHRwczovL2FwaS5vcGVuYWkuY29tL2F1dGgiOnsicG9pZCI6Im9yZy1oM2k3UDZadUN3NFBsWlJFckExMlN3bnAiLCJ1c2VyX2lkIjoidXNlci03cnh4dXRRazZXWUxseVlmVE0xdWdiS1cifSwiaXNzIjoiaHR0cHM6Ly9hdXRoMC5vcGVuYWkuY29tLyIsInN1YiI6ImF1dGgwfDY2NWIwNzY2MzA4NjVjYzZiZGE0YWY0OCIsImF1ZCI6WyJodHRwczovL2FwaS5vcGVuYWkuY29tL3YxIiwiaHR0cHM6Ly9vcGVuYWkub3BlbmFpLmF1dGgwYXBwLmNvbS91c2VyaW5mbyJdLCJpYXQiOjE3MjA3ODIwMTUsImV4cCI6MTcyMTY0NjAxNSwic2NvcGUiOiJvcGVuaWQgcHJvZmlsZSBlbWFpbCBtb2RlbC5yZWFkIG1vZGVsLnJlcXVlc3Qgb3JnYW5pemF0aW9uLnJlYWQgb3JnYW5pemF0aW9uLndyaXRlIG9mZmxpbmVfYWNjZXNzIiwiYXpwIjoiVGRKSWNiZTE2V29USHROOTVueXl3aDVFNHlPbzZJdEcifQ.rx2DujonoTLFrl6ia2ScUwIB73-hOK9BeXxLJ_Wr9e1ksNe2ycvKm8fh7NmXfpYuJBrZLYKIgmX7sUD4btPeu__oMe8l5k_kCXBhesAqQEX1cetb9-hmht1lusCh5WhrKShgNXkteXuK20T_lXSOEigw3cpuBMzckX3ROk0iORM5RTFOHAgSp_Hf-4GcCOmWeKUjVgd_bzbX5DPwKSKri8MOMEDCRY4byCqXLCqoreV5SJhffmsBsFSCxVOcRVf1c5Ew_KrOGiObK6I7SK2smlGDWVqUnyjpW5sNBOiczz0vNHSdniWmumfplA0kveR5ng8RNp0QpRmhmVFpcoaNTw';
+
+        async function sendMessage() {
+            const message = userInput.value.trim();
+            if (message === '') return;
+
+            displayMessage('User', message);
+            userInput.value = '';
+
+            try {
+                const response = await fetch('http://localhost:3000/api/chat', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': token
+                    },
+                    body: JSON.stringify({ message })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const data = await response.json();
+                const aiMessage = data.messages[0].content.parts[0];
+                displayMessage('AI', aiMessage);
+            } catch (error) {
+                console.error('Error:', error);
+                displayMessage('System', 'An error occurred while fetching the response.');
+            }
+        }
+
+        function displayMessage(sender, message) {
+            const messageElement = document.createElement('p');
+            messageElement.innerHTML = `<strong>${sender}:</strong> ${message}`;
+            chatContainer.appendChild(messageElement);
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
+
+        userInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                sendMessage();
+            }
+        });
+    </script>
+</body>
+</html>
