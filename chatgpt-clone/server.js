@@ -7,40 +7,48 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-const PORT = process.env.PORT || 11434;
+const PORT = process.env.PORT || 3000;
 const OPENAI_API_URL = "https://api.openai.com/v1/chat/completions";
+const OPENAI_API_KEY = process.env.OPENAI_API_KEY; // Store this in your .env file
 
-app.post("/api/chat", async (req, res) => {
+// Middleware to log incoming requests
+app.use((req, res, next) => {
+  console.log("Incoming Request:", {
+    method: req.method,
+    path: req.path,
+    body: req.body,
+    headers: req.headers,
+  });
+  next();
+});
+
+app.post("/v1/chat/completions", async (req, res) => {
   try {
-    const { message, conversationId, parentMessageId } = req.body;
-    const token = req.headers.authorization;
+    const { model, messages } = req.body;
 
-    if (!token) {
-      return res.status(401).json({ error: "No token provided" });
+    if (!model || !messages) {
+      console.log("Bad Request:", { error: "Model and messages are required" });
+      return res.status(400).json({ error: "Model and messages are required" });
     }
+
+    console.log("Outgoing Request to OpenAI:", {
+      url: OPENAI_API_URL,
+      model,
+      messages,
+    });
 
     const response = await axios.post(
       OPENAI_API_URL,
-      {
-        model: "gpt-4o",
-        messages: [
-          {
-            role: "system",
-            content: "You are a helpful assistant.",
-          },
-          {
-            role: "user",
-            content: message,
-          },
-        ],
-      },
+      { model, messages },
       {
         headers: {
           "Content-Type": "application/json",
-          Authorization: token,
+          Authorization: `Bearer ${OPENAI_API_KEY}`,
         },
       }
     );
+
+    console.log("Response from OpenAI:", response.data);
 
     res.json(response.data);
   } catch (error) {
@@ -50,6 +58,19 @@ app.post("/api/chat", async (req, res) => {
     );
     res.status(500).json({ error: error.message });
   }
+});
+
+// Middleware to log outgoing responses
+app.use((req, res, next) => {
+  const originalJson = res.json;
+  res.json = function (body) {
+    console.log("Outgoing Response:", {
+      statusCode: res.statusCode,
+      body: body,
+    });
+    originalJson.call(this, body);
+  };
+  next();
 });
 
 app.listen(PORT, () => {
