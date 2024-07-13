@@ -9,29 +9,11 @@ app.use(express.json());
 
 const PORT = process.env.PORT || 3000;
 const OPENAI_API_URL = "https://api.openai.com/v1/chat/completions";
-const OPENAI_API_KEY = process.env.OPENAI_API_KEY; // Store this in your .env file
-
-// Middleware to log incoming requests
-app.use((req, res, next) => {
-  console.log(
-    "Incoming Request:",
-    JSON.stringify(
-      {
-        method: req.method,
-        path: req.path,
-        body: req.body,
-        headers: req.headers,
-      },
-      null,
-      2
-    )
-  );
-  next();
-});
+const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 
 app.post("/v1/chat/completions", async (req, res) => {
   try {
-    const { model, messages } = req.body;
+    const { model, messages, stream } = req.body;
 
     if (!model || !messages) {
       console.log(
@@ -48,6 +30,7 @@ app.post("/v1/chat/completions", async (req, res) => {
           url: OPENAI_API_URL,
           model,
           messages,
+          stream,
         },
         null,
         2
@@ -56,7 +39,7 @@ app.post("/v1/chat/completions", async (req, res) => {
 
     const response = await axios.post(
       OPENAI_API_URL,
-      { model, messages },
+      { model, messages, stream },
       {
         headers: {
           "Content-Type": "application/json",
@@ -65,11 +48,31 @@ app.post("/v1/chat/completions", async (req, res) => {
       }
     );
 
-    // Ensure the response is in JSON format
-    const jsonResponse = response.data;
-    console.log("Response from OpenAI:", JSON.stringify(jsonResponse, null, 2));
+    console.log(
+      "Response from OpenAI:",
+      JSON.stringify(response.data, null, 2)
+    );
 
-    res.json(jsonResponse);
+    // Format the response to match OpenAI's API structure
+    const formattedResponse = {
+      id: `chatcmpl-${Date.now()}`,
+      object: "chat.completion",
+      created: Math.floor(Date.now() / 1000),
+      model: model,
+      choices: [
+        {
+          index: 0,
+          message: {
+            role: "assistant",
+            content: response.data.choices[0].message.content,
+          },
+          finish_reason: "stop",
+        },
+      ],
+      usage: response.data.usage,
+    };
+
+    res.json(formattedResponse);
   } catch (error) {
     console.error(
       "Error:",
@@ -81,26 +84,6 @@ app.post("/v1/chat/completions", async (req, res) => {
     );
     res.status(500).json({ error: error.message });
   }
-});
-
-// Middleware to log outgoing responses
-app.use((req, res, next) => {
-  const originalJson = res.json;
-  res.json = function (body) {
-    console.log(
-      "Outgoing Response:",
-      JSON.stringify(
-        {
-          statusCode: res.statusCode,
-          body: body,
-        },
-        null,
-        2
-      )
-    );
-    originalJson.call(this, body);
-  };
-  next();
 });
 
 app.listen(PORT, () => {
