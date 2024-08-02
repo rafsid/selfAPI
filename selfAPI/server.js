@@ -29,6 +29,26 @@ app.use((req, res, next) => {
   next();
 });
 
+// Middleware to log outgoing responses
+app.use((req, res, next) => {
+  const originalJson = res.json;
+  res.json = function (body) {
+    console.log(
+      "Outgoing Response:",
+      JSON.stringify(
+        {
+          statusCode: res.statusCode,
+          body: body,
+        },
+        null,
+        2
+      )
+    );
+    originalJson.call(this, body);
+  };
+  next();
+});
+
 app.post("/v1/chat/completions", async (req, res) => {
   try {
     const { model, messages } = req.body;
@@ -81,26 +101,6 @@ app.post("/v1/chat/completions", async (req, res) => {
     );
     res.status(500).json({ error: error.message });
   }
-});
-
-// Middleware to log outgoing responses
-app.use((req, res, next) => {
-  const originalJson = res.json;
-  res.json = function (body) {
-    console.log(
-      "Outgoing Response:",
-      JSON.stringify(
-        {
-          statusCode: res.statusCode,
-          body: body,
-        },
-        null,
-        2
-      )
-    );
-    originalJson.call(this, body);
-  };
-  next();
 });
 
 app.listen(PORT, () => {
